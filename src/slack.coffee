@@ -7,10 +7,8 @@ class Slack extends Adapter
 
   channelMapping: (channel_name, channel_id) ->
     if channel_id?
-      @log "Recording channel mapping from #{channel_name} to #{channel_id}"
       return @robot.brain.set("slack-channel-mapping-#{channel_name}", channel_id)
     else
-      @log "Getting channel mapping for #{channel_name}"
       return @robot.brain.get("slack-channel-mapping-#{channel_name}")
 
 
