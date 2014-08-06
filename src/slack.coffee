@@ -26,13 +26,20 @@ class Slack extends Adapter
 
     strings.forEach (str) =>
       str = @escapeHtml str
-      args = JSON.stringify
-        username   : @robot.name
+      args = {
+        username   : envelope.slack?.overrides?.username ? @robot.name
         channel    : channel
         text       : str
         link_names : @options.link_names if @options?.link_names?
+      }
 
-      @post "/services/hooks/hubot", args
+      if envelope.slack?.overrides?.icon_url?
+        args.icon_url = envelope.slack.overrides.icon_url
+
+      if envelope.slack?.overrides?.icon_emoji?
+        args.icon_emoji = envelope.slack.overrides.icon_emoji
+
+      @post "/services/hooks/hubot", JSON.stringify args
 
   reply: (envelope, strings...) ->
     @log "Sending reply"
