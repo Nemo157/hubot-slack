@@ -5,11 +5,11 @@ class Slack extends Adapter
   constructor: (robot) ->
     super robot
 
-  channelMapping: (channel, channel_id) ->
+  channelMapping: (channel_name, channel_id) ->
     if channel_id?
-      return @robot.brain.set("slack-channel-mapping-#{channel}", channel_id)
+      return @robot.brain.set("slack-channel-mapping-#{channel_name}", channel_id)
     else
-      return @robot.brain.get("slack-channel-mapping-#{channel}")
+      return @robot.brain.get("slack-channel-mapping-#{channel_name}")
 
 
   ###################################################################
@@ -26,8 +26,8 @@ class Slack extends Adapter
   # robot.respond, robot.listen, etc.
   ###################################################################
   send: (envelope, strings...) ->
-    @log "Sending message"
     channel = envelope.reply_to || @channelMapping(envelope.room) || envelope.room
+    @log "Sending message to #{channel}"
 
     strings.forEach (str) =>
       str = @escapeHtml str
