@@ -105,13 +105,14 @@ class Slack extends Adapter
   ###################################################################
   # Parsing inputs.
   ###################################################################
+  channels: ->
+    @robot.brain.get('slack-channels-whitelist') ? []
 
   parseOptions: ->
     @options =
       token : process.env.HUBOT_SLACK_TOKEN
       team  : process.env.HUBOT_SLACK_TEAM
       name  : process.env.HUBOT_SLACK_BOTNAME or 'slackbot'
-      channels: @robot.brain.get('slack-channels-whitelist') ? []
       link_names: process.env.HUBOT_SLACK_LINK_NAMES or 0
 
   getMessageFromRequest: (req) ->
@@ -164,7 +165,7 @@ class Slack extends Adapter
       author.reply_to = req.param 'channel_id'
       author.room = req.param 'channel_name'
       self.channelMapping(req.param('channel_name'), req.param('channel_id'))
-      channels = self.options.channels
+      channels = self.channels()
 
       if hubotMsg and author
         if author.room in channels
@@ -217,15 +218,17 @@ class Slack extends Adapter
     @alwaysListeners.push new TextListener(@robot, newRegex, callback)
 
   whitelistChannel: (channel) ->
-    if channel not in @options.channels
-      @options.channels.push(channel)
-      robot.brain.set('slack-channels-whitelist', @options.channels)
+    channels = @channels()
+    if channel not in channels
+      channels.push(channel)
+      robot.brain.set('slack-channels-whitelist', channels)
 
   blacklistChannel: (channel) ->
-    if channel in @options.channels
-      index = @options.channels.indexOf(channel)
-      @options.channels[index..index] = []
-      robot.brain.set('slack-channels-whitelist', @options.channels)
+    channels = @channels()
+    if channel in channels
+      index = channels.indexOf(channel)
+      channels[index..index] = []
+      robot.brain.set('slack-channels-whitelist', channels)
 
   ###################################################################
   # Convenience HTTP Methods for sending data back to slack.
