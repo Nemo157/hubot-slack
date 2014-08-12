@@ -4,6 +4,7 @@ https = require 'https'
 class Slack extends Adapter
   constructor: (robot) ->
     super robot
+    @alwaysListeners = []
 
   channelMapping: (channel_name, channel_id) ->
     if channel_id?
