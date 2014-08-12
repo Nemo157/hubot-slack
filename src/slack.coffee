@@ -1,4 +1,4 @@
-{Robot, Adapter, TextMessage} = require 'hubot'
+{Robot, Adapter, TextMessage, TextListener} = require 'hubot'
 https = require 'https'
 
 class Slack extends Adapter
@@ -110,20 +110,15 @@ class Slack extends Adapter
       token : process.env.HUBOT_SLACK_TOKEN
       team  : process.env.HUBOT_SLACK_TEAM
       name  : process.env.HUBOT_SLACK_BOTNAME or 'slackbot'
-      mode  : process.env.HUBOT_SLACK_CHANNELMODE or 'blacklist'
-      # Make sure channel settings don't include leading hashes
-      channels: (process.env.HUBOT_SLACK_CHANNELS?.split(',') or []).map (channel) ->
-        channel.replace /^#/, ''
+      channels: @robot.brain.get('slack-channels-whitelist') ? []
       link_names: process.env.HUBOT_SLACK_LINK_NAMES or 0
 
   getMessageFromRequest: (req) ->
     # Parse the payload
     hubotMsg = req.param 'text'
     room = req.param 'channel_name'
-    mode = @options.mode
-    channels = @options.channels
 
-    @unescapeHtml hubotMsg if hubotMsg and (mode is 'blacklist' and room not in channels or mode is 'whitelist' and room in channels)
+    @unescapeHtml hubotMsg if hubotMsg
 
   getAuthorFromRequest: (req) ->
     # Return an author object
@@ -168,10 +163,13 @@ class Slack extends Adapter
       author.reply_to = req.param 'channel_id'
       author.room = req.param 'channel_name'
       self.channelMapping(req.param('channel_name'), req.param('channel_id'))
+      channels = @options.channels
 
       if hubotMsg and author
-        # Pass to the robot
-        self.receive new TextMessage(author, hubotMsg)
+        if author.room in channels
+          # Pass to the robot
+          self.receive new TextMessage(author, hubotMsg)
+        self.alwaysReceive new TextMessage(author, hubotMsg)
 
       # Just send back an empty reply, since our actual reply,
       # if any, will be async above
@@ -184,6 +182,49 @@ class Slack extends Adapter
     @log "Successfully 'connected' as", self.robot.name
     self.emit "connected"
 
+  alwaysReceive: (message) ->
+    results = []
+    for listener in @alwaysListeners
+      try
+        results.push listener.call(message)
+        break if message.done
+      catch error
+        @emit('error', error, new @Response(@, message, []))
+
+        false
+
+  alwaysRespond: (regex, callback) ->
+    re = regex.toString().split('/')
+    re.shift()
+    modifiers = re.pop()
+
+    pattern = re.join('/')
+    name = @robot.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+
+    if @robot.alias
+      alias = @robot.alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+      newRegex = new RegExp(
+        "^[@]?(?:#{alias}[:,]?|#{name}[:,]?)\\s*(?:#{pattern})"
+        modifiers
+      )
+    else
+      newRegex = new RegExp(
+        "^[@]?#{name}[:,]?\\s*(?:#{pattern})",
+        modifiers
+      )
+
+    @alwaysListeners.push new TextListener(@robot, newRegex, callback)
+
+  whitelistChannel: (channel) ->
+    if channel not in @options.channels
+      @options.channels.push(channel)
+      robot.brain.set('slack-channels-whitelist', @options.channels)
+
+  blacklistChannel: (channel) ->
+    if channel in @options.channels
+      index = @options.channels.indexOf(channel)
+      @options.channels[index..index] = []
+      robot.brain.set('slack-channels-whitelist', @options.channels)
 
   ###################################################################
   # Convenience HTTP Methods for sending data back to slack.
