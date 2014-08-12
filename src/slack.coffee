@@ -167,7 +167,7 @@ class Slack extends Adapter
       channels = @options.channels
 
       if hubotMsg and author
-        if author.room in channels
+        if author.room in @options.channels
           # Pass to the robot
           self.receive new TextMessage(author, hubotMsg)
         self.alwaysReceive new TextMessage(author, hubotMsg)
