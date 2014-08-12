@@ -164,10 +164,10 @@ class Slack extends Adapter
       author.reply_to = req.param 'channel_id'
       author.room = req.param 'channel_name'
       self.channelMapping(req.param('channel_name'), req.param('channel_id'))
-      channels = @options.channels
+      channels = self.options.channels
 
       if hubotMsg and author
-        if author.room in @options.channels
+        if author.room in channels
           # Pass to the robot
           self.receive new TextMessage(author, hubotMsg)
         self.alwaysReceive new TextMessage(author, hubotMsg)
