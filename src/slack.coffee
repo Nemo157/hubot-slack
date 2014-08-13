@@ -7,10 +7,12 @@ class Slack extends Adapter
     @alwaysListeners = []
 
   channelMapping: (channel_name, channel_id) ->
-    if channel_id?
-      return @robot.brain.set("slack-channel-mapping-#{channel_name}", channel_id)
+    channel_mapping = @robot.brain.get("slack-channel-mapping") ? {}
+    if channel_id? and channel_mapping[channel_name] != channel_id
+      channel_mapping[channel_name] = channel_id
+      @robot.brain.set("slack-channel-mapping", channel_mapping)
     else
-      return @robot.brain.get("slack-channel-mapping-#{channel_name}")
+      return channel_mapping[channel_name] ? @robot.brain.get("slack-channel-mapping-#{channel_name}")
 
 
   ###################################################################
