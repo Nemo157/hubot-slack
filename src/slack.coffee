@@ -194,7 +194,7 @@ class Slack extends Adapter
         results.push listener.call(message)
         break if message.done
       catch error
-        @robot.emit('error', error, new @robot.Response(@robot., message, []))
+        @robot.emit('error', error, new @robot.Response(@robot, message, []))
 
         false
 
